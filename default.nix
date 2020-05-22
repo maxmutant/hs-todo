@@ -1,3 +1,3 @@
 { pkgs ? import <nixpkgs> {} }:
 
-pkgs.haskellPackages.callCabal2nix "hs-snake" ./. {}
+pkgs.haskellPackages.callCabal2nix "hs-todo" ./. {}
