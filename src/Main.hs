@@ -1,56 +1,34 @@
 module Main where
 
-import Brick.Util (fg, on)
-import Brick.Widgets.Core (str, withAttr)
-import Control.Monad (void)
+import System.Directory
+import System.Environment
+import System.Exit
 
-import qualified Brick.AttrMap          as BA
-import qualified Brick.Widgets.Center   as BC
-import qualified Brick.Widgets.List     as BL
-import qualified Brick.Main             as BM
-import qualified Brick.Types            as BT
-import qualified Data.Vector            as Vec
-import qualified Graphics.Vty           as V
+import qualified TodoUI as UI
 
-drawUI :: (Show a) => BL.List () a -> [BT.Widget ()]
-drawUI l = [BL.renderList listDrawElement True l]
+main :: IO()
+main = do
+    todoFilePath <- parseArgs getArgs
+    -- let todoFilePath = "/home/max/programming/haskell/hs-todo/res/example.txt"
+    todoItems <- readTodoFile todoFilePath
+    UI.runMain todoItems
+    exitSuccess
 
-listDrawElement :: (Show a) => Bool -> a -> BT.Widget ()
-listDrawElement sel a =
-    let selStr s = if sel
-                   then withAttr customAttr (str s)
-                   else str s
-    in BC.hCenter $ selStr (show a)
+parseArgs :: IO [String] -> IO String
+parseArgs args = do
+    input <- args
+    if null input
+       then errorWithoutStackTrace "No todo file path given! Exiting..."
+       else return $ head input
 
-appHandleEvent :: BL.List () String -> BT.BrickEvent () e
-               -> BT.EventM () (BT.Next (BL.List () String))
-appHandleEvent l (BT.VtyEvent e) =
-    case e of
-        V.EvKey V.KEsc [] -> BM.halt l
-        V.EvKey (V.KChar 'q') [] -> BM.halt l
-        x -> BM.continue =<< BL.handleListEventVi BL.handleListEvent x l
-appHandleEvent l _ = BM.continue l
+readTodoFile :: String -> IO [UI.TodoItem]
+readTodoFile path = do
+    fileExists <- doesFileExist path
+    if fileExists
+       then do
+           todoLines <- lines <$> readFile path
+           return $ parseTodoItems todoLines
+       else errorWithoutStackTrace "File does not exist! Exiting..."
 
-customAttr :: BA.AttrName
-customAttr = BA.attrName "customAttr"
-
-appAttrMap :: BA.AttrMap
-appAttrMap = BA.attrMap V.defAttr
-    [ (BL.listAttr,            V.white `on` V.black)
-    , (BL.listSelectedAttr,    V.black `on` V.white)
-    , (customAttr,            fg V.black)
-    ]
-
-todoApp :: BM.App (BL.List () String) e ()
-todoApp = BM.App { BM.appDraw = drawUI
-                 , BM.appChooseCursor = BM.showFirstCursor
-                 , BM.appHandleEvent = appHandleEvent
-                 , BM.appStartEvent = return
-                 , BM.appAttrMap = const appAttrMap
-                 }
-
-initialState :: BL.List () String
-initialState = BL.list () (Vec.fromList ["hello","world","!"]) 1
-
-main :: IO ()
-main = void $ BM.defaultMain todoApp initialState
+parseTodoItems :: [String] -> [UI.TodoItem]
+parseTodoItems items = [UI.TodoItem "test" (head items)]
