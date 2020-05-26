@@ -4,13 +4,14 @@ import Data.Maybe
 import System.Directory
 import System.Environment
 import System.Exit
+-- import Text.Regex.PCRE
 
 import qualified TodoUI as UI
 
 main :: IO()
 main = do
-    todoFilePath <- parseArgs getArgs
-    -- let todoFilePath = "/home/max/programming/haskell/hs-todo/res/example.txt"
+    -- todoFilePath <- parseArgs getArgs
+    let todoFilePath = "/home/max/programming/haskell/hs-todo/res/example.txt"
     todoItems <- readTodoFile todoFilePath
     UI.runMain todoItems
     exitSuccess
@@ -32,16 +33,17 @@ readTodoFile path = do
        else errorWithoutStackTrace "File does not exist! Exiting..."
 
 parseTodoItem :: String -> UI.TodoItem
-parseTodoItem todoStr = UI.TodoItem { UI._desc = parseDesc todoStr
-                                    , UI._project = parseStartsWith todoStr '+'
-                                    , UI._context = parseStartsWith todoStr '@'
+parseTodoItem todoStr = UI.TodoItem { UI._desc = parseDesc todoWords
+                                    , UI._project = parseStartsWith todoWords '+'
+                                    , UI._context = parseStartsWith todoWords '@'
                                     }
+                        where todoWords = words todoStr
 
-parseDesc :: String -> String
-parseDesc todoStr = todoStr
+parseDesc :: [String] -> String
+parseDesc = head
 
-parseStartsWith :: String -> Char -> Maybe String
-parseStartsWith todoStr pre = listToMaybe . filter (hasPrefix pre) $ words todoStr
+parseStartsWith :: [String] -> Char -> Maybe String
+parseStartsWith todoWords pre = listToMaybe $ filter (hasPrefix pre) todoWords
 
 hasPrefix ::  Char -> String -> Bool
 hasPrefix _ [] = False

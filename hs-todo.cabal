@@ -16,6 +16,7 @@ executable hs-todo
   build-depends:       base >=4.12 && <4.13
                      , brick
                      , directory
+                     -- , regex-pcre
                      , vector
                      , vty
   default-language:    Haskell2010
