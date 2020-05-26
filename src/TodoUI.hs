@@ -17,8 +17,12 @@ import qualified Graphics.Vty           as V
 
 data TodoItem = TodoItem
   { _desc       :: String
-  , _project    :: String
-  } deriving (Show)
+  , _project    :: Maybe String
+  , _context    :: Maybe String
+  }
+
+instance Show TodoItem where
+    show = _desc
 
 drawUI :: (Show a) => BL.List () a -> [BT.Widget ()]
 drawUI l = [BL.renderList listDrawElement True l]
