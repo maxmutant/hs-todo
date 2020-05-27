@@ -1,1 +1,5 @@
+# cabal build results
 dist-newstyle/
+
+# nix-build results
+result
