@@ -7,7 +7,8 @@ in
     root = ./.;
     name = "hs-todo";
     modifier = drv:
-      pkgs.haskell.lib.addBuildTools drv (with pkgs.haskellPackages;
-        [ cabal-install
+      pkgs.haskell.lib.addBuildTools drv (with pkgs;
+        [ haskellPackages.cabal-install
+          pkg-config
         ]);
   }

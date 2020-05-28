@@ -1,4 +1,7 @@
 (A) Thank Mom for the meatballs @phone
 (B) Schedule Goodwill pickup +GarageSale @phone
+(D) 1994-12-11 Schedule Goodwill pickup @phone +GarageSale
 Post signs around the neighborhood +GarageSale
 @GroceryStore Eskimo pies
+@GroceryStore HalliHallo zu test@test.com +bla @phone
+x +hii12i Fuuuuuu key:val @nope pri:F

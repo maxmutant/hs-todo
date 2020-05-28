@@ -3,3 +3,6 @@ dist-newstyle/
 
 # nix-build results
 result
+
+# local env settings
+.envrc
