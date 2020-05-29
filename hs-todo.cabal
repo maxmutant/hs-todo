@@ -11,7 +11,8 @@ cabal-version:       >=1.10
 executable hs-todo
   hs-source-dirs:      src
   main-is:             Main.hs
-  other-modules:       TodoItem
+  other-modules:       TodoIO
+                     , TodoItem
                      , TodoUI
   ghc-options:         -Wall -threaded
   build-depends:       base >=4.12 && <4.13

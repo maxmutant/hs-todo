@@ -1,32 +1,16 @@
 module Main where
 
-import System.Directory
 import System.Environment
 import System.Exit
 
 import qualified TodoUI     as TU
-import qualified TodoItem   as TI
+import qualified TodoIO     as IO
 
 main :: IO()
 main = do
-    todoFilePath <- parseArgs getArgs
+    todoFilePath <- IO.parseArgs getArgs
     -- let todoFilePath = "./res/example.txt"
-    todoItems <- readTodoFile todoFilePath
-    TU.runMain todoItems
+    todoItems <- IO.readTodoFile todoFilePath
+    outputItems <- TU.runMain todoItems
+    IO.writeTodoFile todoFilePath outputItems
     exitSuccess
-
-parseArgs :: IO [String] -> IO String
-parseArgs args = do
-    input <- args
-    if null input
-       then errorWithoutStackTrace "No todo file path given! Exiting..."
-       else return $ head input
-
-readTodoFile :: String -> IO [TI.TodoItem]
-readTodoFile path = do
-    fileExists <- doesFileExist path
-    if fileExists
-       then do
-           contents <- readFile path
-           return . map TI.parseTodoItem $ lines contents
-       else errorWithoutStackTrace "File does not exist! Exiting..."

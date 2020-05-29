@@ -1,13 +1,16 @@
 module TodoItem
 ( TodoItem
 , parseTodoItem
+, reverseForm
+, toggleDone
 ) where
 
 import Data.List.Extra
 import Text.Regex.TDFA
 
 data TodoItem = TodoItem
-  { _done      :: Bool
+  { _original  :: String
+  , _done      :: Bool
   , _priority  :: String
   , _dates     :: String
   , _desc      :: String
@@ -27,6 +30,9 @@ instance Show TodoItem where
             ++ printList (_context item)
             ++ printList (_keyval item)
 
+reverseForm :: TodoItem -> String
+reverseForm = _original
+
 printList :: [String] -> String
 printList [] = ""
 printList [x] = " " ++ x
@@ -44,7 +50,8 @@ parseTodoItem todoStr = do
         contexts   = parseAll dateNext (getRegex "context")
         keyvals    = parseAll dateNext (getRegex "keyval")
         varying    = merge projects $ merge contexts keyvals
-    TodoItem { _done     = matched' doneResult /= ""
+    TodoItem { _original = todoStr
+             , _done     = matched' doneResult /= ""
              , _priority = matched' prioResult
              , _dates    = matched' dateResult
              , _desc     = parseDesc dateNext varying
@@ -52,6 +59,12 @@ parseTodoItem todoStr = do
              , _context  = contexts
              , _keyval   = keyvals
              }
+
+toggleDone :: TodoItem -> TodoItem
+toggleDone i = i { _original = if _done i
+                                  then drop 2 $ _original i
+                                  else 'x':' ': _original i
+                 , _done = not $ _done i }
 
 getRegex :: String -> String
 getRegex "done" = "(x )"

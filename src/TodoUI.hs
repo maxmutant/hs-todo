@@ -4,7 +4,6 @@ module TodoUI
 
 import Brick.Util (on)
 import Brick.Widgets.Core (str, vBox, (<+>))
-import Control.Monad (void)
 import Lens.Micro ((^.))
 
 import qualified Brick.AttrMap          as BA
@@ -38,6 +37,8 @@ appHandleEvent l (BT.VtyEvent e) =
     case e of
         V.EvKey V.KEsc [] -> BM.halt l
         V.EvKey (V.KChar 'q') [] -> BM.halt l
+        V.EvKey (V.KChar ' ') [] -> BM.continue $ BL.listModify TI.toggleDone l
+        -- V.EvKey (V.KChar 'w') [] -> BM.continue l
         x -> BM.continue =<< BL.handleListEventVi BL.handleListEvent x l
 appHandleEvent l _ = BM.continue l
 
@@ -58,5 +59,7 @@ todoApp = BM.App { BM.appDraw = drawUI
 initialState :: [TI.TodoItem] -> BL.List () TI.TodoItem
 initialState todoItems = BL.list () (Vec.fromList todoItems) 1
 
-runMain :: [TI.TodoItem] -> IO()
-runMain todoItems = void $ BM.defaultMain todoApp (initialState todoItems)
+runMain :: [TI.TodoItem] -> IO [TI.TodoItem]
+runMain todoItems = do
+    l <- BM.defaultMain todoApp (initialState todoItems)
+    return (Vec.toList $ l^.BL.listElementsL)
