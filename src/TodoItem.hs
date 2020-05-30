@@ -21,9 +21,12 @@ data TodoItem = TodoItem
 
 instance Show TodoItem where
     show item = do
-        let x = if _done item then "x " else ""
+        let x = if _done item then "x " else "  "
+        let prio = if _priority item /= ""
+                      then _priority item
+                      else "    "
         " " ++ x
-            ++ _priority item
+            ++ prio
             ++ _dates item
             ++ _desc item
             ++ printList (_project item)

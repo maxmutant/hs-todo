@@ -19,7 +19,8 @@ executable hs-todo
                      , brick
                      , directory
                      , extra
-                     , microlens
+                     , microlens >= 0.3.0.0
+                     , microlens-th
                      , regex-tdfa
                      , vector
                      , vty
