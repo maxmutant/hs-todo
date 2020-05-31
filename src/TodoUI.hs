@@ -6,6 +6,7 @@ module TodoUI
 
 import Brick.Util (on)
 import Brick.Widgets.Core (str, vBox, (<+>))
+import Control.Monad.IO.Class (liftIO)
 import Lens.Micro
 import Lens.Micro.TH
 
@@ -15,6 +16,7 @@ import qualified Brick.Main             as BM
 import qualified Brick.Types            as BT
 import qualified Data.Vector            as Vec
 import qualified Graphics.Vty           as V
+import qualified TodoIO                 as IO
 import qualified TodoItem               as TI
 
 data St =
@@ -51,13 +53,20 @@ listDrawElement _ l = str (show l)
 setFilter :: String -> String
 setFilter _ = "phone"
 
+handleWriteFile :: St -> IO St
+handleWriteFile st = do
+    let path = st^.file
+        items = Vec.toList $ st ^. (list . BL.listElementsL)
+    IO.writeTodoFile path items
+    return st
+
 appHandleEvent :: St -> BT.BrickEvent () e -> BT.EventM () (BT.Next St)
 appHandleEvent st (BT.VtyEvent e) =
     case e of
         V.EvKey V.KEsc [] -> BM.halt st
         V.EvKey (V.KChar 'q') [] -> BM.halt st
         V.EvKey (V.KChar ' ') [] -> BM.continue $ st & list %~ BL.listModify TI.toggleDone
-        V.EvKey (V.KChar 'w') [] -> BM.continue st
+        V.EvKey (V.KChar 'w') [] -> BM.continue =<< liftIO (handleWriteFile st)
         V.EvKey (V.KChar 'f') [] -> BM.continue $ st & itemFilter %~ setFilter
         _ -> BM.continue =<< BT.handleEventLensed st list (BL.handleListEventVi BL.handleListEvent) e
 appHandleEvent st _ = BM.continue st
@@ -78,8 +87,8 @@ todoApp = BM.App { BM.appDraw = drawUI
 
 initialState :: String -> [TI.TodoItem] -> St
 initialState path todoItems =
-    St (path)
-       ("")
+    St path
+       ""
        (BL.list () (Vec.fromList todoItems) 1)
 
 runMain :: String -> [TI.TodoItem] -> IO [TI.TodoItem]
