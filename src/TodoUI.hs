@@ -21,19 +21,29 @@ import qualified Graphics.Vty           as V
 import qualified TodoIO                 as IO
 import qualified TodoItem               as TI
 
+-- Types
 
-data Name = List
-          | Edit
-          deriving (Ord, Show, Eq)
+data Name
+    = List
+    | Edit
+    deriving (Eq, Ord, Show)
 
-data St =
-    St { _file :: String
-       -- , _itemFilter :: String
-       , _focusRing :: BF.FocusRing Name
-       , _list :: BL.List Name TI.TodoItem
-       , _edit :: BE.Editor String Name
-       }
+data EditMode
+    = None
+    | AddNew
+    | EditEntry
+    deriving (Eq, Ord, Show)
+
+data St = St
+    { _file :: String
+    , _focusRing :: BF.FocusRing Name
+    , _list :: BL.List Name TI.TodoItem
+    , _edit :: BE.Editor String Name
+    , _editMode :: EditMode
+    }
 makeLenses ''St
+
+-- Drawing
 
 drawUI :: St -> [BT.Widget Name]
 drawUI st = [ui]
@@ -55,12 +65,8 @@ drawUI st = [ui]
 listDrawElement :: (Show a) => Bool -> a -> BT.Widget Name
 listDrawElement _ l = str (show l)
 
-handleWriteFile :: St -> IO St
-handleWriteFile st = do
-    let path = st^.file
-        items = Vec.toList $ st ^. (list . BL.listElementsL)
-    IO.writeTodoFile path items
-    return st
+
+-- Handling events
 
 appHandleEvent :: St -> BT.BrickEvent Name e -> BT.EventM Name (BT.Next St)
 appHandleEvent st (BT.VtyEvent e) =
@@ -70,20 +76,37 @@ appHandleEvent st (BT.VtyEvent e) =
             V.EvKey (V.KChar 'q') [] -> BM.halt st
             V.EvKey (V.KChar ' ') [] -> BM.continue $ st & list %~ BL.listModify TI.toggleDone
             V.EvKey (V.KChar 'w') [] -> BM.continue =<< liftIO (handleWriteFile st)
-            V.EvKey (V.KChar 'e') [] -> BM.continue $ st & focusRing %~ BF.focusNext
-            V.EvKey (V.KChar '/') [] -> BM.continue $ st & focusRing %~ BF.focusNext
+            V.EvKey (V.KChar 'e') [] -> BM.continue $ enterEntryEdit st
+            -- V.EvKey (V.KChar 'e') [] -> BM.continue $ st & editMode %~ EditEntry & focusRing %~ BF.focusSetCurrent Edit
+            V.EvKey (V.KChar '/') [] -> BM.continue $ st & focusRing %~ BF.focusSetCurrent Edit
             _ -> BM.continue =<< BT.handleEventLensed st list (BL.handleListEventVi BL.handleListEvent) e
       Just Edit -> case e of
-            V.EvKey V.KEsc [] -> BM.continue $ st & focusRing %~ BF.focusNext
+            V.EvKey V.KEsc [] -> BM.continue $ st & focusRing %~ BF.focusSetCurrent List
             _ -> BM.continue =<< BT.handleEventLensed st edit BE.handleEditorEvent e
       Nothing -> BM.continue st
 appHandleEvent st _ = BM.continue st
+
+handleWriteFile :: St -> IO St
+handleWriteFile st = do
+    let path = st^.file
+        items = Vec.toList $ st ^. (list . BL.listElementsL)
+    IO.writeTodoFile path items
+    return st
+
+enterEntryEdit :: St -> St
+enterEntryEdit st = st & focusRing %~ BF.focusSetCurrent Edit
+                       & editMode .~ EditEntry
+                       & edit .~ BE.editor Edit (Just 1) "Hello"
+
+-- Attributes
 
 appAttrMap :: BA.AttrMap
 appAttrMap = BA.attrMap V.defAttr
     [ (BL.listAttr,            V.white `on` V.black)
     , (BL.listSelectedAttr,    V.black `on` V.yellow)
     ]
+
+-- App definition
 
 todoApp :: BM.App St e Name
 todoApp = BM.App { BM.appDraw = drawUI
@@ -96,10 +119,12 @@ todoApp = BM.App { BM.appDraw = drawUI
 initialState :: String -> [TI.TodoItem] -> St
 initialState path todoItems =
     St path
-       -- ""
        (BF.focusRing [List, Edit])
        (BL.list List (Vec.fromList todoItems) 1)
        (BE.editor Edit (Just 1) "")
+       None
+
+-- Start brick app
 
 runMain :: String -> [TI.TodoItem] -> IO [TI.TodoItem]
 runMain path todoItems = do
