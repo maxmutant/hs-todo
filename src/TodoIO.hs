@@ -23,8 +23,16 @@ readTodoFile path = do
     if fileExists
        then do
            contents <- readFile path
-           return . map TI.parseTodoItem $ lines contents
+           let parsedItems = map TI.parseTodoItem $ lines contents
+           return . map validate $ zip [1..] parsedItems
        else errorWithoutStackTrace "File does not exist! Exiting..."
+
+validate :: (Integer, Either String TI.TodoItem) -> TI.TodoItem
+validate (line, item) = case item of
+                         Right ti -> ti
+                         Left err ->
+                             let msg = ("Line " <> show line <> " - "<> err) in
+                             errorWithoutStackTrace msg
 
 writeTodoFile :: String -> [TI.TodoItem] -> IO ()
 writeTodoFile fileName outputItems =

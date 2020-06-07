@@ -3,8 +3,8 @@ module Main where
 import System.Environment
 import System.Exit
 
-import qualified TodoUI     as TU
-import qualified TodoIO     as IO
+import qualified TodoUI as TU
+import qualified TodoIO as IO
 
 main :: IO()
 main = do

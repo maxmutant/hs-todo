@@ -7,6 +7,7 @@ module TodoUI
 import Brick.Util (on)
 import Brick.Widgets.Core (str, vBox, (<+>))
 import Control.Monad.IO.Class (liftIO)
+import Data.Text.Zipper
 import Lens.Micro
 import Lens.Micro.TH
 
@@ -32,6 +33,7 @@ data EditMode
     = None
     | AddNew
     | EditEntry
+    | SearchEntry
     deriving (Eq, Ord, Show)
 
 data St = St
@@ -76,12 +78,13 @@ appHandleEvent st (BT.VtyEvent e) =
             V.EvKey (V.KChar 'q') [] -> BM.halt st
             V.EvKey (V.KChar ' ') [] -> BM.continue $ st & list %~ BL.listModify TI.toggleDone
             V.EvKey (V.KChar 'w') [] -> BM.continue =<< liftIO (handleWriteFile st)
-            V.EvKey (V.KChar 'e') [] -> BM.continue $ enterEntryEdit st
-            -- V.EvKey (V.KChar 'e') [] -> BM.continue $ st & editMode %~ EditEntry & focusRing %~ BF.focusSetCurrent Edit
-            V.EvKey (V.KChar '/') [] -> BM.continue $ st & focusRing %~ BF.focusSetCurrent Edit
+            V.EvKey (V.KChar 'e') [] -> BM.continue . setEditContent "" $ enterEdit st EditEntry
+            V.EvKey (V.KChar 'n') [] -> BM.continue $ enterEdit st AddNew
+            V.EvKey (V.KChar '/') [] -> BM.continue $ enterEdit st SearchEntry
             _ -> BM.continue =<< BT.handleEventLensed st list (BL.handleListEventVi BL.handleListEvent) e
       Just Edit -> case e of
-            V.EvKey V.KEsc [] -> BM.continue $ st & focusRing %~ BF.focusSetCurrent List
+            V.EvKey V.KEsc []   -> BM.continue . clearEdit $ leaveEdit st
+            V.EvKey V.KEnter [] -> BM.continue . leaveEdit $ handleEditInput st
             _ -> BM.continue =<< BT.handleEventLensed st edit BE.handleEditorEvent e
       Nothing -> BM.continue st
 appHandleEvent st _ = BM.continue st
@@ -93,10 +96,42 @@ handleWriteFile st = do
     IO.writeTodoFile path items
     return st
 
-enterEntryEdit :: St -> St
-enterEntryEdit st = st & focusRing %~ BF.focusSetCurrent Edit
-                       & editMode .~ EditEntry
-                       & edit .~ BE.editor Edit (Just 1) "Hello"
+enterEdit :: St -> EditMode -> St
+enterEdit st m = clearEdit $ st & focusRing %~ BF.focusSetCurrent Edit
+                                & editMode .~ m
+
+setEditContent ::  String -> St -> St
+setEditContent s st = st & edit .~ BE.editor Edit (Just 1) s
+
+handleEditInput :: St -> St
+handleEditInput st =
+    case st^.editMode of
+      AddNew    -> addNewEntry st
+      _         -> st
+
+addNewEntry :: St -> St
+addNewEntry st =
+    case parseValidInput $ BE.getEditContents (st^.edit) of
+      Left err       -> setEditContent err st
+      Right todoItem -> do
+          let pos = getNextPostion st
+              msg = "Successfully added new item (id: " <> show (pos + 1) <> ")"
+          setEditContent  msg $ st & list %~ BL.listInsert pos todoItem
+
+getNextPostion :: St -> Int
+getNextPostion st = Vec.length $ st ^. (list . BL.listElementsL)
+
+parseValidInput :: [String] -> Either String TI.TodoItem
+parseValidInput input =
+    if null input || null (head input)
+       then Left "Can't add new item. Input is empty!"
+       else TI.parseTodoItem $ head input
+
+clearEdit :: St -> St
+clearEdit st = st & edit %~ BE.applyEdit clearZipper
+
+leaveEdit :: St -> St
+leaveEdit st = st & focusRing %~ BF.focusSetCurrent List
 
 -- Attributes
 

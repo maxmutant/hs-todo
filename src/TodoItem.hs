@@ -9,20 +9,20 @@ import Data.List.Extra
 import Text.Regex.TDFA
 
 data TodoItem = TodoItem
-  { _original  :: String
-  , _done      :: Bool
-  , _priority  :: String
-  , _dates     :: String
-  , _desc      :: String
-  , _project   :: [String]
-  , _context   :: [String]
-  , _keyval    :: [String]
+  { _original :: String
+  , _done     :: Bool
+  , _priority :: String
+  , _dates    :: String
+  , _desc     :: String
+  , _project  :: [String]
+  , _context  :: [String]
+  , _keyval   :: [String]
   }
 
 instance Show TodoItem where
     show item = do
         let x = if _done item then "x " else "  "
-        let prio = if _priority item /= ""
+            prio = if _priority item /= ""
                       then _priority item
                       else "    "
         " " ++ x
@@ -41,7 +41,7 @@ printList [] = ""
 printList [x] = " " ++ x
 printList (x:xs) = " " ++ x ++ printList xs
 
-parseTodoItem :: String -> TodoItem
+parseTodoItem :: String -> Either String TodoItem
 parseTodoItem todoStr = do
     let doneResult = parseStart todoStr (getRegex "done")
         doneNext   = getNext doneResult
@@ -53,15 +53,18 @@ parseTodoItem todoStr = do
         contexts   = parseAll dateNext (getRegex "context")
         keyvals    = parseAll dateNext (getRegex "keyval")
         varying    = merge projects $ merge contexts keyvals
-    TodoItem { _original = todoStr
-             , _done     = matched' doneResult /= ""
-             , _priority = matched' prioResult
-             , _dates    = matched' dateResult
-             , _desc     = parseDesc dateNext varying
-             , _project  = projects
-             , _context  = contexts
-             , _keyval   = keyvals
-             }
+        desc       = parseDesc dateNext varying
+    if null desc
+       then Left "Given string is not in valid todo.txt format!"
+       else Right TodoItem { _original = todoStr
+                           , _done     = matched' doneResult /= ""
+                           , _priority = matched' prioResult
+                           , _dates    = matched' dateResult
+                           , _desc     = desc
+                           , _project  = projects
+                           , _context  = contexts
+                           , _keyval   = keyvals
+                           }
 
 toggleDone :: TodoItem -> TodoItem
 toggleDone i = i { _original = if _done i

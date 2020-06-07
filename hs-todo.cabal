@@ -22,6 +22,7 @@ executable hs-todo
                      , microlens >= 0.3.0.0
                      , microlens-th
                      , regex-tdfa
+                     , text-zipper
                      , vector
                      , vty
   default-language:    Haskell2010
