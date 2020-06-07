@@ -1,7 +1,7 @@
-(A) Thank Mom for the meatballs @phone
-(B) Schedule Goodwill pickup +GarageSale @phone
-(D) 1994-12-11 Schedule Goodwill pickup @phone +GarageSale
-Post signs around the neighborhood +GarageSale
-@GroceryStore Eskimo pies
-@GroceryStore HalliHallo zu test@test.com +bla @phone
-x +hii12i Fuuuuuu key:val @nope pri:F
+(A) Enable editing of entries
+(B) Add sorting by "done" checkmark, date and priority
+(B) Add filter for keyword
+(C) Add color highlights for priority, projects and contexts +dummy @dummy
+(C) Fix highlight of selected item to use 100% width @visuals
+(A) Add check for file changes on exit and ask user what to to
+(D) Add message for file save @nice-to-have
