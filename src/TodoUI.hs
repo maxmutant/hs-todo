@@ -76,11 +76,12 @@ appHandleEvent st (BT.VtyEvent e) =
       Just List -> case e of
             V.EvKey V.KEsc [] -> BM.halt st
             V.EvKey (V.KChar 'q') [] -> BM.halt st
-            V.EvKey (V.KChar ' ') [] -> BM.continue $ st & list %~ BL.listModify TI.toggleDone
             V.EvKey (V.KChar 'w') [] -> BM.continue =<< liftIO (handleWriteFile st)
-            V.EvKey (V.KChar 'e') [] -> BM.continue . setEditContent "" $ enterEdit st EditEntry
-            V.EvKey (V.KChar 'n') [] -> BM.continue $ enterEdit st AddNew
             V.EvKey (V.KChar '/') [] -> BM.continue $ enterEdit st SearchEntry
+            V.EvKey (V.KChar ' ') [] -> BM.continue $ st & list %~ BL.listModify TI.toggleDone
+            V.EvKey (V.KChar 'n') [] -> BM.continue $ enterEdit st AddNew
+            V.EvKey (V.KChar 'x') [] -> BM.continue $ deleteEntry st
+            V.EvKey (V.KChar 'e') [] -> BM.continue . setEditContent "" $ enterEdit st EditEntry
             _ -> BM.continue =<< BT.handleEventLensed st list (BL.handleListEventVi BL.handleListEvent) e
       Just Edit -> case e of
             V.EvKey V.KEsc []   -> BM.continue . clearEdit $ leaveEdit st
@@ -115,8 +116,8 @@ addNewEntry st =
       Left err       -> setEditContent err st
       Right todoItem -> do
           let pos = getNextPostion st
-              msg = "Successfully added new item (id: " <> show (pos + 1) <> ")"
-          setEditContent  msg $ st & list %~ BL.listInsert pos todoItem
+              msg = "Successfully added new item"
+          setEditContent msg $ st & list %~ BL.listInsert pos todoItem
 
 getNextPostion :: St -> Int
 getNextPostion st = Vec.length $ st ^. (list . BL.listElementsL)
@@ -126,6 +127,14 @@ parseValidInput input =
     if null input || null (head input)
        then Left "Can't add new item. Input is empty!"
        else TI.parseTodoItem $ head input
+
+deleteEntry :: St -> St
+deleteEntry st =
+    case st ^. (list . BL.listSelectedL) of
+      Nothing -> st
+      Just i  -> do
+          let msg = "Deleted selected item"
+          setEditContent msg $ st & list %~ BL.listRemove i
 
 clearEdit :: St -> St
 clearEdit st = st & edit %~ BE.applyEdit clearZipper
