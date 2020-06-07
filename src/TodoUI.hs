@@ -94,8 +94,9 @@ handleWriteFile :: St -> IO St
 handleWriteFile st = do
     let path = st^.file
         items = Vec.toList $ st ^. (list . BL.listElementsL)
+        msg = "\""<> (st^.file) <> "\" written"
     IO.writeTodoFile path items
-    return st
+    return $ setEditContent msg st
 
 enterEdit :: St -> EditMode -> St
 enterEdit st m = clearEdit $ st & focusRing %~ BF.focusSetCurrent Edit
