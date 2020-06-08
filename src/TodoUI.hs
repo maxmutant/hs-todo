@@ -64,9 +64,8 @@ drawUI st = [ui]
                   , BF.withFocusRing f (BE.renderEditor (str. unlines)) e
                   ]
 
-listDrawElement :: (Show a) => Bool -> a -> BT.Widget Name
-listDrawElement _ l = str (show l)
-
+listDrawElement :: Bool -> TI.TodoItem -> BT.Widget Name
+listDrawElement _ l = str (TI.printIndented l)
 
 -- Handling events
 
@@ -81,7 +80,7 @@ appHandleEvent st (BT.VtyEvent e) =
             V.EvKey (V.KChar ' ') [] -> BM.continue $ st & list %~ BL.listModify TI.toggleDone
             V.EvKey (V.KChar 'n') [] -> BM.continue $ enterEdit st AddNew
             V.EvKey (V.KChar 'x') [] -> BM.continue $ deleteEntry st
-            V.EvKey (V.KChar 'e') [] -> BM.continue . setEditContent "" $ enterEdit st EditEntry
+            V.EvKey (V.KChar 'e') [] -> BM.continue $ editCurrent st
             _ -> BM.continue =<< BT.handleEventLensed st list (BL.handleListEventVi BL.handleListEvent) e
       Just Edit -> case e of
             V.EvKey V.KEsc []   -> BM.continue . clearEdit $ leaveEdit st
@@ -109,6 +108,7 @@ handleEditInput :: St -> St
 handleEditInput st =
     case st^.editMode of
       AddNew    -> addNewEntry st
+      EditEntry -> addNewEntry st
       _         -> st
 
 addNewEntry :: St -> St
@@ -132,10 +132,16 @@ parseValidInput input =
 deleteEntry :: St -> St
 deleteEntry st =
     case st ^. (list . BL.listSelectedL) of
-      Nothing -> st
+      Nothing -> setEditContent "No item selected!" st
       Just i  -> do
           let msg = "Deleted selected item"
           setEditContent msg $ st & list %~ BL.listRemove i
+
+editCurrent :: St -> St
+editCurrent st =
+    case BL.listSelectedElement (st^.list) of
+      Nothing        -> setEditContent "No item selected!" st
+      Just (_, item) -> setEditContent (show item) $ enterEdit st EditEntry
 
 clearEdit :: St -> St
 clearEdit st = st & edit %~ BE.applyEdit clearZipper

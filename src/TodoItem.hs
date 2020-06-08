@@ -1,7 +1,7 @@
 module TodoItem
 ( TodoItem
 , parseTodoItem
-, reverseForm
+, printIndented
 , toggleDone
 ) where
 
@@ -20,26 +20,7 @@ data TodoItem = TodoItem
   }
 
 instance Show TodoItem where
-    show item = do
-        let x = if _done item then "x " else "  "
-            prio = if _priority item /= ""
-                      then _priority item
-                      else "    "
-        " " ++ x
-            ++ prio
-            ++ _dates item
-            ++ _desc item
-            ++ printList (_project item)
-            ++ printList (_context item)
-            ++ printList (_keyval item)
-
-reverseForm :: TodoItem -> String
-reverseForm = _original
-
-printList :: [String] -> String
-printList [] = ""
-printList [x] = " " ++ x
-printList (x:xs) = " " ++ x ++ printList xs
+    show = _original
 
 parseTodoItem :: String -> Either String TodoItem
 parseTodoItem todoStr = do
@@ -65,6 +46,26 @@ parseTodoItem todoStr = do
                            , _context  = contexts
                            , _keyval   = keyvals
                            }
+
+printIndented :: TodoItem -> String
+printIndented item = do
+        let x = if _done item then "x " else "  "
+            prio = if _priority item /= ""
+                      then _priority item
+                      else "    "
+        " " ++ x
+            ++ prio
+            ++ _dates item
+            ++ _desc item
+            ++ printList (_project item)
+            ++ printList (_context item)
+            ++ printList (_keyval item)
+
+printList :: [String] -> String
+printList [] = ""
+printList [x] = " " ++ x
+printList (x:xs) = " " ++ x ++ printList xs
+
 
 toggleDone :: TodoItem -> TodoItem
 toggleDone i = i { _original = if _done i

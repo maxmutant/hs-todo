@@ -41,7 +41,7 @@ writeTodoFile fileName outputItems =
         hClose tempHandle
         removeFile tempName)
     (\(tempName, tempHandle) -> do
-        hPutStr tempHandle . unlines $ map TI.reverseForm outputItems
+        hPutStr tempHandle . unlines $ map show outputItems
         hClose tempHandle
         removeFile fileName
         renameFile tempName fileName)
