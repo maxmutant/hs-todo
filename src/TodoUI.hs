@@ -102,13 +102,13 @@ enterEdit st m = clearEdit $ st & focusRing %~ BF.focusSetCurrent Edit
                                 & editMode .~ m
 
 setEditContent ::  String -> St -> St
-setEditContent s st = st & edit .~ BE.editor Edit (Just 1) s
+setEditContent s st = st & clearEdit & edit %~ BE.applyEdit (insertMany s)
 
 handleEditInput :: St -> St
 handleEditInput st =
     case st^.editMode of
       AddNew    -> addNewEntry st
-      EditEntry -> addNewEntry st
+      EditEntry -> updateCurrentEntry st
       _         -> st
 
 addNewEntry :: St -> St
@@ -120,14 +120,25 @@ addNewEntry st =
               msg = "Successfully added new item"
           setEditContent msg $ st & list %~ BL.listInsert pos todoItem
 
-getNextPostion :: St -> Int
-getNextPostion st = Vec.length $ st ^. (list . BL.listElementsL)
-
 parseValidInput :: [String] -> Either String TI.TodoItem
 parseValidInput input =
     if null input || null (head input)
-       then Left "Can't add new item. Input is empty!"
+       then Left "Can't use empty input!"
        else TI.parseTodoItem $ head input
+
+getNextPostion :: St -> Int
+getNextPostion st = Vec.length $ st ^. (list . BL.listElementsL)
+
+updateCurrentEntry :: St -> St
+updateCurrentEntry st =
+    case parseValidInput $ BE.getEditContents (st^.edit) of
+      Left err       -> setEditContent err st
+      Right todoItem -> do
+          let msg = "Successfully updated item"
+          setEditContent msg $ st & list %~ BL.listModify (replaceWith todoItem)
+
+replaceWith :: TI.TodoItem -> TI.TodoItem -> TI.TodoItem
+replaceWith i _ = i
 
 deleteEntry :: St -> St
 deleteEntry st =

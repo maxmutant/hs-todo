@@ -1,4 +1,4 @@
-(A) Enable editing of entries
+x (A) Enable editing of entries
 (B) Add sorting by "done" checkmark, date and priority
 (B) Add filter for keyword
 (C) Add color highlights for priority, projects and contexts +dummy @dummy
