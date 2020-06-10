@@ -5,7 +5,7 @@ module TodoUI
 ) where
 
 import Brick.Util (on)
-import Brick.Widgets.Core (str, vBox, (<+>))
+import Brick.Widgets.Core (fill, hLimitPercent, str, vBox, vLimit, (<+>))
 import Control.Monad.IO.Class (liftIO)
 import Data.Text.Zipper
 import Lens.Micro
@@ -65,7 +65,8 @@ drawUI st = [ui]
                   ]
 
 listDrawElement :: Bool -> TI.TodoItem -> BT.Widget Name
-listDrawElement _ l = str (TI.printIndented l)
+listDrawElement _ l = limit $ str (TI.printIndented l) <+> fill ' '
+    where limit = hLimitPercent 100 . vLimit 1
 
 -- Handling events
 
