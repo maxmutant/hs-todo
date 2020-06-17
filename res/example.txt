@@ -1,7 +1,9 @@
 (B) Add sorting by "done" checkmark, date and priority
 (B) Add filter for keyword
+(B) Auto handling of dates on creation / completion
 (C) Add color highlights for priority, projects and contexts +dummy @dummy
-(A) Add check for file changes on exit and ask user what to to
+(C) (priority) should become pri:Val and vice versa on toggle complete
 x (A) Enable editing of entries
+x (A) Add check for file changes on exit and ask user what to to
 x (C) Fix highlight of selected item to use 100% width @visuals
 x (D) Add message for file save @nice-to-have

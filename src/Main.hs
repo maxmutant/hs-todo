@@ -11,6 +11,5 @@ main = do
     todoFilePath <- IO.parseArgs getArgs
     -- let todoFilePath = "./res/example.txt"
     todoItems <- IO.readTodoFile todoFilePath
-    outputItems <- TU.runMain todoFilePath todoItems
-    IO.writeTodoFile todoFilePath outputItems
+    TU.runMain todoFilePath todoItems
     exitSuccess

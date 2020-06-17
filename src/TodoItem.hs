@@ -22,6 +22,9 @@ data TodoItem = TodoItem
 instance Show TodoItem where
     show = _original
 
+instance Eq TodoItem where
+    x == y = _original x == _original y
+
 parseTodoItem :: String -> Either String TodoItem
 parseTodoItem todoStr = do
     let doneResult = parseStart todoStr (getRegex "done")

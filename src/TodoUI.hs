@@ -6,7 +6,9 @@ module TodoUI
 
 import Brick.Util (on)
 import Brick.Widgets.Core (fill, hLimitPercent, str, vBox, vLimit, (<+>))
+import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
+import Data.Char
 import Data.Text.Zipper
 import Lens.Micro
 import Lens.Micro.TH
@@ -34,16 +36,34 @@ data EditMode
     | AddNew
     | EditEntry
     | SearchEntry
+    | ExitPrompt
     deriving (Eq, Ord, Show)
 
 data St = St
     { _file :: String
     , _focusRing :: BF.FocusRing Name
     , _list :: BL.List Name TI.TodoItem
+    , _label :: String
     , _edit :: BE.Editor String Name
     , _editMode :: EditMode
     }
 makeLenses ''St
+
+-- Texts
+
+txtNoSel, txtAdd, txtEdit, txtDel, txtErrEmpty :: String
+txtNoSel = "No item selected!"
+txtAdd = "Successfully added new item"
+txtEdit = "Successfully updated item"
+txtDel = "Deleted selected item"
+txtErrEmpty = "Can't use empty input!"
+
+txtLabel :: EditMode -> String
+txtLabel AddNew = "Add"
+txtLabel EditEntry = "Edit"
+txtLabel SearchEntry = "Search"
+txtLabel ExitPrompt = "There are unsaved changes. Save them? [Yy]es [Nn]o [Cc]ancel"
+txtLabel _ = ""
 
 -- Drawing
 
@@ -53,15 +73,19 @@ drawUI st = [ui]
         f = st^.focusRing
         l = st^.list
         e = st^.edit
-        label = str "hs-todo 1.0.0 - Your tasks (" <+> cur <+> str " of "
+        la = if null (st^.label)
+                then str ""
+                else str (st^.label) <+> str ": "
+        header = str "hs-todo 1.0.0 - Your tasks (" <+> cur <+> str " of "
             <+> total <+> str ")"
         cur = case l^.BL.listSelectedL of
                 Nothing -> str "-"
                 Just i  -> str (show (i + 1))
         total = str $ show $ Vec.length $ l^.BL.listElementsL
-        ui = vBox [ label
+        footer = la <+> BF.withFocusRing f (BE.renderEditor (str. unlines)) e
+        ui = vBox [ header
                   , BF.withFocusRing f (BL.renderList listDrawElement) l
-                  , BF.withFocusRing f (BE.renderEditor (str. unlines)) e
+                  , footer
                   ]
 
 listDrawElement :: Bool -> TI.TodoItem -> BT.Widget Name
@@ -74,8 +98,8 @@ appHandleEvent :: St -> BT.BrickEvent Name e -> BT.EventM Name (BT.Next St)
 appHandleEvent st (BT.VtyEvent e) =
     case BF.focusGetCurrent (st^.focusRing) of
       Just List -> case e of
-            V.EvKey V.KEsc [] -> BM.halt st
-            V.EvKey (V.KChar 'q') [] -> BM.halt st
+            V.EvKey V.KEsc [] -> onExit st
+            V.EvKey (V.KChar 'q') [] -> onExit st
             V.EvKey (V.KChar 'w') [] -> BM.continue =<< liftIO (handleWriteFile st)
             V.EvKey (V.KChar '/') [] -> BM.continue $ enterEdit st SearchEntry
             V.EvKey (V.KChar ' ') [] -> BM.continue $ st & list %~ BL.listModify TI.toggleDone
@@ -85,10 +109,18 @@ appHandleEvent st (BT.VtyEvent e) =
             _ -> BM.continue =<< BT.handleEventLensed st list (BL.handleListEventVi BL.handleListEvent) e
       Just Edit -> case e of
             V.EvKey V.KEsc []   -> BM.continue . clearEdit $ leaveEdit st
-            V.EvKey V.KEnter [] -> BM.continue . leaveEdit $ handleEditInput st
+            V.EvKey V.KEnter [] -> handleEditInput st
             _ -> BM.continue =<< BT.handleEventLensed st edit BE.handleEditorEvent e
       Nothing -> BM.continue st
 appHandleEvent st _ = BM.continue st
+
+onExit :: St -> BT.EventM Name (BT.Next St)
+onExit st = do
+    let current = Vec.toList $ st ^. (list . BL.listElementsL)
+    savedItems <- liftIO (IO.readTodoFile (st^.file))
+    if current /= savedItems
+       then BM.continue $ enterEdit st ExitPrompt
+       else BM.halt st
 
 handleWriteFile :: St -> IO St
 handleWriteFile st = do
@@ -96,35 +128,45 @@ handleWriteFile st = do
         items = Vec.toList $ st ^. (list . BL.listElementsL)
         msg = "\""<> (st^.file) <> "\" written"
     IO.writeTodoFile path items
-    return $ setEditContent msg st
+    return $ setEditText msg st
 
 enterEdit :: St -> EditMode -> St
-enterEdit st m = clearEdit $ st & focusRing %~ BF.focusSetCurrent Edit
-                                & editMode .~ m
+enterEdit st m = st & clearEdit
+                    & focusRing %~ BF.focusSetCurrent Edit
+                    & editMode .~ m
+                    & label .~ txtLabel m
 
-setEditContent ::  String -> St -> St
-setEditContent s st = st & clearEdit & edit %~ BE.applyEdit (insertMany s)
+setEditText :: String -> St -> St
+setEditText s st = st & clearEdit & edit %~ BE.applyEdit (insertMany s)
 
-handleEditInput :: St -> St
+handleEditInput :: St -> BT.EventM Name (BT.Next St)
 handleEditInput st =
     case st^.editMode of
-      AddNew    -> addNewEntry st
-      EditEntry -> updateCurrentEntry st
-      _         -> st
+      AddNew     -> BM.continue . leaveEdit $ addNewEntry st
+      EditEntry  -> BM.continue . leaveEdit $ updateCurrentEntry st
+      ExitPrompt -> handleUnsavedChanges st
+      _          -> BM.continue st
+
+handleUnsavedChanges :: St -> BT.EventM Name (BT.Next St)
+handleUnsavedChanges st
+    | s == "y" || s == "yes" = BM.halt =<< liftIO (handleWriteFile st)
+    | s == "n" || s == "no"  = BM.halt st
+    | otherwise              = BM.continue . clearEdit $ leaveEdit st
+    where input = BE.getEditContents (st^.edit)
+          s     = if null input then "" else map toLower $ head input
 
 addNewEntry :: St -> St
 addNewEntry st =
     case parseValidInput $ BE.getEditContents (st^.edit) of
-      Left err       -> setEditContent err st
+      Left err       -> setEditText err st
       Right todoItem -> do
           let pos = getNextPostion st
-              msg = "Successfully added new item"
-          setEditContent msg $ st & list %~ BL.listInsert pos todoItem
+          setEditText txtAdd $ st & list %~ BL.listInsert pos todoItem
 
 parseValidInput :: [String] -> Either String TI.TodoItem
 parseValidInput input =
     if null input || null (head input)
-       then Left "Can't use empty input!"
+       then Left txtErrEmpty
        else TI.parseTodoItem $ head input
 
 getNextPostion :: St -> Int
@@ -133,10 +175,8 @@ getNextPostion st = Vec.length $ st ^. (list . BL.listElementsL)
 updateCurrentEntry :: St -> St
 updateCurrentEntry st =
     case parseValidInput $ BE.getEditContents (st^.edit) of
-      Left err       -> setEditContent err st
-      Right todoItem -> do
-          let msg = "Successfully updated item"
-          setEditContent msg $ st & list %~ BL.listModify (replaceWith todoItem)
+      Left err       -> setEditText err st
+      Right todoItem -> setEditText txtEdit $ st & list %~ BL.listModify (replaceWith todoItem)
 
 replaceWith :: TI.TodoItem -> TI.TodoItem -> TI.TodoItem
 replaceWith i _ = i
@@ -144,22 +184,22 @@ replaceWith i _ = i
 deleteEntry :: St -> St
 deleteEntry st =
     case st ^. (list . BL.listSelectedL) of
-      Nothing -> setEditContent "No item selected!" st
-      Just i  -> do
-          let msg = "Deleted selected item"
-          setEditContent msg $ st & list %~ BL.listRemove i
+      Nothing -> setEditText txtNoSel st
+      Just i  -> setEditText txtDel $ st & list %~ BL.listRemove i
 
 editCurrent :: St -> St
 editCurrent st =
     case BL.listSelectedElement (st^.list) of
-      Nothing        -> setEditContent "No item selected!" st
-      Just (_, item) -> setEditContent (show item) $ enterEdit st EditEntry
+      Nothing        -> setEditText txtNoSel st
+      Just (_, item) -> setEditText (show item) $ enterEdit st EditEntry
 
 clearEdit :: St -> St
 clearEdit st = st & edit %~ BE.applyEdit clearZipper
 
 leaveEdit :: St -> St
 leaveEdit st = st & focusRing %~ BF.focusSetCurrent List
+                  & editMode .~ None
+                  & label .~ ""
 
 -- Attributes
 
@@ -184,12 +224,11 @@ initialState path todoItems =
     St path
        (BF.focusRing [List, Edit])
        (BL.list List (Vec.fromList todoItems) 1)
+       ""
        (BE.editor Edit (Just 1) "")
        None
 
 -- Start brick app
 
-runMain :: String -> [TI.TodoItem] -> IO [TI.TodoItem]
-runMain path todoItems = do
-    st <- BM.defaultMain todoApp (initialState path todoItems)
-    return (Vec.toList $ st ^. (list . BL.listElementsL))
+runMain :: String -> [TI.TodoItem] -> IO ()
+runMain path entries = void $ BM.defaultMain todoApp (initialState path entries)
