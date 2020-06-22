@@ -29,10 +29,10 @@ readTodoFile path = do
 
 validate :: (Integer, Either String TI.TodoItem) -> TI.TodoItem
 validate (line, item) = case item of
-                         Right ti -> ti
-                         Left err ->
-                             let msg = ("Line " <> show line <> " - "<> err) in
-                             errorWithoutStackTrace msg
+                          Right ti -> ti { TI._id = line }
+                          Left err ->
+                              let msg = ("Line " <> show line <> " - "<> err)
+                               in errorWithoutStackTrace msg
 
 writeTodoFile :: String -> [TI.TodoItem] -> IO ()
 writeTodoFile fileName outputItems =

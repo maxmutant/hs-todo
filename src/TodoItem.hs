@@ -1,5 +1,5 @@
 module TodoItem
-( TodoItem
+( TodoItem (..)
 , parseTodoItem
 , printIndented
 , toggleDone
@@ -9,7 +9,8 @@ import Data.List.Extra
 import Text.Regex.TDFA
 
 data TodoItem = TodoItem
-  { _original :: String
+  { _id       :: Integer
+  , _original :: String
   , _done     :: Bool
   , _priority :: String
   , _dates    :: String
@@ -23,7 +24,7 @@ instance Show TodoItem where
     show = _original
 
 instance Eq TodoItem where
-    x == y = _original x == _original y
+    x == y = _id x == _id y
 
 parseTodoItem :: String -> Either String TodoItem
 parseTodoItem todoStr = do
@@ -40,7 +41,8 @@ parseTodoItem todoStr = do
         desc       = parseDesc dateNext varying
     if null desc
        then Left "Given string is not in valid todo.txt format!"
-       else Right TodoItem { _original = todoStr
+       else Right TodoItem { _id       = 0
+                           , _original = todoStr
                            , _done     = matched' doneResult /= ""
                            , _priority = matched' prioResult
                            , _dates    = matched' dateResult
