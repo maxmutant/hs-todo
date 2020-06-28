@@ -1,15 +1,28 @@
+-- --------------------------------------------------------------------------
+-- |
+-- Module      :  Main
+-- Copyright   :  (c) Maximilian Mayer 2020
+-- License     :  MIT (see LICENSE)
+--
+-- Maintainer  :  max@maxmayer.xyz
+-- Stability   :
+-- Portability :
+--
+-- hs-todo, a minimalist TUI for the todo.txt format.
+--
+-----------------------------------------------------------------------------
+
 module Main where
 
-import System.Environment
-import System.Exit
+import Todo.IO
+import Todo.UI
 
-import qualified TodoUI as TU
-import qualified TodoIO as IO
+import System.Environment (getArgs)
+import System.Exit (exitSuccess)
 
 main :: IO()
 main = do
-    todoFilePath <- IO.parseArgs getArgs
-    -- let todoFilePath = "./res/example.txt"
-    todoItems <- IO.readTodoFile todoFilePath
-    TU.runMain todoFilePath todoItems
+    todoFilePath <- parseArgs getArgs
+    todoItems <- readTodoFile todoFilePath
+    runMain todoFilePath todoItems
     exitSuccess
