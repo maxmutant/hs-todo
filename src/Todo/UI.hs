@@ -179,11 +179,15 @@ editDefaultHandler st = BT.handleEventLensed st edit BE.handleEditorEvent
 
 onExit :: St -> BT.EventM Name (BT.Next St)
 onExit st = do
-    let current = unsortedItems st
     savedItems <- liftIO (readTodoFile (st^.file))
-    if current /= savedItems
+    if length current /= length savedItems || differ current savedItems
        then BM.continue $ enterEdit st ExitPrompt
        else BM.halt st
+    where
+        current = unsortedItems st
+
+        differ :: [TodoItem] -> [TodoItem] -> Bool
+        differ x y = elem False $ zipWith compareByText x y
 
 onWriteFile :: St -> IO St
 onWriteFile st = do

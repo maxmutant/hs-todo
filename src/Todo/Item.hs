@@ -15,6 +15,7 @@
 module Todo.Item
 ( TodoItem
 , getId, setId
+, compareByText
 , toggleDone
 , parseTodoItem
 , printIndented
@@ -54,6 +55,9 @@ getId = _id
 
 setId :: TodoItem -> Integer -> TodoItem
 setId item newId = item { _id = newId }
+
+compareByText :: TodoItem -> TodoItem -> Bool
+compareByText x y = _original x == _original y
 
 -- | Toggle the done flag of a TodoItem and update the 'original'
 -- string to match the new state.

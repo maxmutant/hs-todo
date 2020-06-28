@@ -10,4 +10,4 @@ x (D) Add message for file save @nice-to-have
 (C) (priority) should become pri:Val and vice versa on toggle complete
 (A) Resort list on any modification
 (D) Add "write as sorted"
-(A) Bug: Does not detect unsaved changes when editing items
+x (A) Bug: Does not detect unsaved changes when editing items
