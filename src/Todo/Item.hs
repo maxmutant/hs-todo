@@ -19,7 +19,7 @@ module Todo.Item
 , toggleDone
 , parseTodoItem
 , printIndented
-, sortOrig, sortId, sortDone, sortDate, sortPrio, sortProj, sortCont
+, sortFull, sortId, sortDone, sortDate, sortPrio, sortProj, sortCont
 ) where
 
 import Todo.FixedStrings
@@ -34,7 +34,7 @@ import qualified Data.Vector.Algorithms.Intro as Vec
 -- | TodoItem, the parsed representation of a todo.txt line.
 data TodoItem = TodoItem
   { _id       :: Integer  -- ^ Unique identifier of each item
-  , _original :: String   -- ^ The full todo item string (1 line in todo.txt)
+  , _full     :: String   -- ^ The full todo item string (1 line in todo.txt)
   , _done     :: Bool     -- ^ Whether item is done "x "
   , _priority :: String   -- ^ Priority of item ([A-Z])
   , _dates    :: String   -- ^ Completion and creation dates in form YYYY-MM-DD
@@ -45,7 +45,7 @@ data TodoItem = TodoItem
   }
 
 instance Show TodoItem where
-    show = _original
+    show = _full
 
 instance Eq TodoItem where
     x == y = _id x == _id y
@@ -57,15 +57,17 @@ setId :: TodoItem -> Integer -> TodoItem
 setId item newId = item { _id = newId }
 
 compareByText :: TodoItem -> TodoItem -> Bool
-compareByText x y = _original x == _original y
+compareByText x y = _full x == _full y
 
--- | Toggle the done flag of a TodoItem and update the 'original'
+-- | Toggle the done flag of a TodoItem and update the 'full'
 -- string to match the new state.
 toggleDone :: TodoItem -> TodoItem
-toggleDone i = i { _original = if _done i
-                                  then drop 2 $ _original i
-                                  else 'x':' ': _original i
-                 , _done = not $ _done i }
+toggleDone i = i { _full = if isDone
+                                  then drop 2 $ _full i
+                                  else 'x':' ': _full i
+                 , _done = not isDone
+                 }
+               where isDone = _done i
 
 -- --------------------------------------------------------------------------
 -- Parsing operations
@@ -91,7 +93,7 @@ parseTodoItem todoStr = do
     if null desc
        then Left txtErrFormat
        else Right TodoItem { _id       = 0
-                           , _original = todoStr
+                           , _full     = todoStr
                            , _done     = matched' doneResult /= ""
                            , _priority = matched' prioResult
                            , _dates    = matched' dateResult
@@ -136,36 +138,25 @@ regKeyVal = "(^[^ :]+:[^ :]+ | [^ :]+:[^ :]+ | [^ :]+:[^ :]+$)"
 
 -- | Print a given TodoItem in an "indented" format. In this
 -- format, items which aren't done or have no priority are
--- indented with spaces to align others.
+-- indented with spaces to align with others.
 printIndented :: TodoItem -> String
 printIndented item =
-    " " ++ x
-        ++ prio
-        ++ _dates item
-        ++ _desc item
-        ++ printList (_project item)
-        ++ printList (_context item)
-        ++ printList (_keyval item)
-            where
-                x = if _done item then "x " else "  "
-                prio = if _priority item /= ""
-                          then _priority item
-                          else "    "
-
-printList :: [String] -> String
-printList [] = ""
-printList [x] = " " ++ x
-printList (x:xs) = " " ++ x ++ printList xs
+    " " ++ spacingDone
+        ++ spacingPrio
+        ++ _full item
+        where
+            spacingDone = if _done item then "" else "  "
+            spacingPrio = if null $ _priority item then "    " else ""
 
 -- --------------------------------------------------------------------------
 -- Sorting
 
 -- | Various functions to sort multiple TodoItems based on
 -- their individual parts.
-sortOrig, sortId, sortDone, sortDate, sortPrio, sortProj, sortCont
+sortFull, sortId, sortDone, sortDate, sortPrio, sortProj, sortCont
     :: Vec.Vector TodoItem
     -> Vec.Vector TodoItem
-sortOrig = sortBy _original
+sortFull = sortBy _full
 sortId   = sortBy _id
 sortDone = sortBy _done
 sortDate = sortBy _dates

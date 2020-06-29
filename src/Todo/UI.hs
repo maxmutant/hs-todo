@@ -155,7 +155,7 @@ appHandleEvent st (BT.VtyEvent e) =
             V.EvKey (V.KChar 'n') [] -> BM.continue $ enterEdit st AddNew
             V.EvKey (V.KChar 'x') [] -> BM.continue $ deleteEntry st
             V.EvKey (V.KChar 'e') [] -> BM.continue $ onEditCurrent st
-            V.EvKey (V.KChar 's') [] -> BM.continue $ resort sortOrig st
+            V.EvKey (V.KChar 's') [] -> BM.continue $ resort sortFull st
             V.EvKey (V.KChar '1') [] -> BM.continue $ resort sortDone st
             V.EvKey (V.KChar '2') [] -> BM.continue $ resort sortDate st
             V.EvKey (V.KChar '3') [] -> BM.continue $ resort sortPrio st
@@ -177,6 +177,8 @@ listDefaultHandler st = BT.handleEventLensed st list viHandler
 editDefaultHandler :: St -> V.Event -> BT.EventM Name St
 editDefaultHandler st = BT.handleEventLensed st edit BE.handleEditorEvent
 
+-- | Before closing, check if there are unsaved changes and
+-- ask user what to do.
 onExit :: St -> BT.EventM Name (BT.Next St)
 onExit st = do
     savedItems <- liftIO (readTodoFile (st^.file))
