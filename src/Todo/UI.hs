@@ -71,6 +71,7 @@ data St = St
     , _edit      :: BE.Editor String Name -- ^ Editor for text manipulation
     , _editMode  :: EditMode              -- ^ What is user currently editing
     , _nextId    :: Integer               -- ^ Next valid id for new item
+    , _sorting   :: Maybe SortFunc
     }
 makeLenses ''St
 
@@ -112,6 +113,7 @@ initialState path todoItems =
        (BE.editor Edit (Just 1) "")
        None
        (toInteger $ length todoItems + 1)
+       Nothing
 
 -- --------------------------------------------------------------------------
 -- Drawing
@@ -200,7 +202,7 @@ onWriteFile st = do
     return $ setEditText msg st
 
 onToggleDone :: St -> St
-onToggleDone st = st & list %~ BL.listModify toggleDone
+onToggleDone st = redoLastSort $ st & list %~ BL.listModify toggleDone
 
 onEditCurrent :: St -> St
 onEditCurrent st =
@@ -211,10 +213,13 @@ onEditCurrent st =
 onProcessInput :: St -> BT.EventM Name (BT.Next St)
 onProcessInput st =
     case st^.editMode of
-      AddNew     -> BM.continue . leaveEdit $ addNewEntry st
-      EditEntry  -> BM.continue . leaveEdit $ updateCurrentEntry st
+      AddNew     -> backToList $ addNewEntry st
+      EditEntry  -> backToList $ updateCurrentEntry st
       ExitPrompt -> handleUnsavedChanges st
       _          -> BM.continue st
+    where
+        backToList = BM.continue . redoLastSort . leaveEdit
+
 
 handleUnsavedChanges :: St -> BT.EventM Name (BT.Next St)
 handleUnsavedChanges st
@@ -290,30 +295,30 @@ deleteEntry st =
 
 -- | Wrapper to sort list within state based on provided function.
 -- Basic sorting functions are defined in Todo.Item
-applySort
-    :: (Vec.Vector TodoItem -> Vec.Vector TodoItem)
-    -> St
-    -> St
+applySort :: SortFunc -> St -> St
 applySort f st = do
     let l = st^.list
         sorted = l & BL.listElementsL %~ f
     st & list .~ case BL.listSelectedElement l of
                    Nothing -> sorted
                    Just (_, i) -> BL.listMoveToElement i sorted
+       & sorting ?~ f
 
 -- | Unsort to original form (order of items within file)
 unsort :: St -> St
 unsort = applySort sortId
 
--- | Sort list based on given function, whereby prior sorts
--- are discarded.
-resort
-    :: (Vec.Vector TodoItem -> Vec.Vector TodoItem)
-    -> St
-    -> St
-resort f = applySort f . unsort
-
 -- | Same as unsort, but returns a list instead of a new state
 unsortedItems :: St -> [TodoItem]
 unsortedItems st = Vec.toList $ ust ^. (list . BL.listElementsL)
     where ust = unsort st
+
+-- | Sort list based on given function, whereby prior sorts
+-- are discarded.
+resort :: SortFunc -> St -> St
+resort f = applySort f . unsort
+
+redoLastSort :: St -> St
+redoLastSort st = case st^.sorting of
+                    Nothing -> st
+                    Just f  -> resort f st

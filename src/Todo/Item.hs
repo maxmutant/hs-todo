@@ -19,6 +19,7 @@ module Todo.Item
 , toggleDone
 , parseTodoItem
 , printIndented
+, SortFunc
 , sortFull, sortId, sortDone, sortDate, sortPrio, sortProj, sortCont
 ) where
 
@@ -151,11 +152,11 @@ printIndented item =
 -- --------------------------------------------------------------------------
 -- Sorting
 
+type SortFunc = (Vec.Vector TodoItem -> Vec.Vector TodoItem)
+
 -- | Various functions to sort multiple TodoItems based on
 -- their individual parts.
-sortFull, sortId, sortDone, sortDate, sortPrio, sortProj, sortCont
-    :: Vec.Vector TodoItem
-    -> Vec.Vector TodoItem
+sortFull, sortId, sortDone, sortDate, sortPrio, sortProj, sortCont :: SortFunc
 sortFull = sortBy _full
 sortId   = sortBy _id
 sortDone = sortBy _done
