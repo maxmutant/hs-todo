@@ -155,7 +155,7 @@ appHandleEvent st (BT.VtyEvent e) =
             V.EvKey (V.KChar '/') [] -> BM.continue $ enterEdit st SearchEntry
             V.EvKey (V.KChar ' ') [] -> BM.continue $ onToggleDone st
             V.EvKey (V.KChar 'n') [] -> BM.continue $ enterEdit st AddNew
-            V.EvKey (V.KChar 'x') [] -> BM.continue $ deleteEntry st
+            V.EvKey (V.KChar 'x') [] -> BM.continue $ listItemDelete st
             V.EvKey (V.KChar 'e') [] -> BM.continue $ onEditCurrent st
             V.EvKey (V.KChar 's') [] -> BM.continue $ resort sortFull st
             V.EvKey (V.KChar '1') [] -> BM.continue $ resort sortDone st
@@ -213,8 +213,8 @@ onEditCurrent st =
 onProcessInput :: St -> BT.EventM Name (BT.Next St)
 onProcessInput st =
     case st^.editMode of
-      AddNew     -> backToList $ addNewEntry st
-      EditEntry  -> backToList $ updateCurrentEntry st
+      AddNew     -> backToList $ listItemAdd st
+      EditEntry  -> backToList $ listItemUpdate st
       ExitPrompt -> handleUnsavedChanges st
       _          -> BM.continue st
     where
@@ -258,37 +258,40 @@ setEditText s st = st & clearEdit & edit %~ BE.applyEdit (insertMany s)
 -- --------------------------------------------------------------------------
 -- List manipulation
 
-addNewEntry :: St -> St
-addNewEntry st =
+listItemAdd :: St -> St
+listItemAdd st =
     case parseValidInput $ BE.getEditContents (st^.edit) of
       Left err       -> setEditText err st
-      Right todoItem ->
-          setEditText txtAdd $ st & list %~ BL.listInsert position itemWithId
-                                  & nextId %~ (+1)
+      Right todoItem -> setEditText txtAdd . incrementId . select $ insert st
           where
-              position = getNextPosition st
+              insert = list %~ BL.listInsert position itemWithId
+              select = list %~ BL.listMoveTo position
+              incrementId  = nextId %~ (+1)
+
+              position = nextPosition st
               itemWithId = setId todoItem (st^.nextId)
 
-              getNextPosition :: St -> Int
-              getNextPosition s = Vec.length $ s ^. (list . BL.listElementsL)
+              nextPosition :: St -> Int
+              nextPosition s = Vec.length $ s ^. (list . BL.listElementsL)
 
-updateCurrentEntry :: St -> St
-updateCurrentEntry st =
+listItemUpdate :: St -> St
+listItemUpdate st =
     case parseValidInput $ BE.getEditContents (st^.edit) of
       Left err       -> setEditText err st
-      Right todoItem ->
-          setEditText txtEdit $ st & list %~ listUpdate
+      Right todoItem -> setEditText txtEdit $ update todoItem st
           where
-              listUpdate = BL.listModify (replaceWith todoItem)
+              update item = list %~ BL.listModify (replaceWith item)
 
               replaceWith :: TodoItem -> TodoItem -> TodoItem
               replaceWith new old = setId new $ getId old
 
-deleteEntry :: St -> St
-deleteEntry st =
+listItemDelete :: St -> St
+listItemDelete st =
     case st ^. (list . BL.listSelectedL) of
       Nothing -> setEditText txtErrNoSel st
-      Just i  -> setEditText txtDel $ st & list %~ BL.listRemove i
+      Just i  -> setEditText txtDel $ delete i st
+          where
+              delete item = list %~ BL.listRemove item
 
 -- --------------------------------------------------------------------------
 -- Sorting

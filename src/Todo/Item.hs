@@ -147,7 +147,7 @@ printIndented item =
         ++ _full item
         where
             spacingDone = if _done item then "" else "  "
-            spacingPrio = if null $ _priority item then "    " else ""
+            spacingPrio = if _priority item == "" then "    " else ""
 
 -- --------------------------------------------------------------------------
 -- Sorting
