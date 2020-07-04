@@ -142,12 +142,20 @@ regKeyVal = "(^[^ :]+:[^ :]+ | [^ :]+:[^ :]+ | [^ :]+:[^ :]+$)"
 -- indented with spaces to align with others.
 printIndented :: TodoItem -> String
 printIndented item =
-    " " ++ spacingDone
+    " " ++ x
         ++ spacingPrio
-        ++ _full item
+        ++ itemText
         where
-            spacingDone = if _done item then "" else "  "
-            spacingPrio = if _priority item == "" then "    " else ""
+            isDone  = _done item
+            hasPrio = _priority item /= ""
+
+            x           = if isDone then "x " else "  "
+            spacingPrio = if hasPrio then "" else "    "
+            itemText    = trimX isDone $ _full item
+
+            trimX :: Bool -> String -> String
+            trimX True  = drop 2
+            trimX False = id
 
 -- --------------------------------------------------------------------------
 -- Sorting
