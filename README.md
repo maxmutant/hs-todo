@@ -4,6 +4,7 @@ A minimalist TUI for the todo.txt format.
 ![screenshot](https://raw.githubusercontent.com/MaxMutantMayer/hs-todo/main/res/screenshot.png)
 
 ## Features
+Currently only minimal functionality is given. More features will be added gradually (see res/example.txt for more information).
 * Vim-inspired keybindings
 * Add, delete and edit todo.txt entries
 * Sort entries
