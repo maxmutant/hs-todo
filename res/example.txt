@@ -11,4 +11,5 @@ x (D) Add message for file save @nice-to-have
 x (A) Resort list on any modification
 (D) Add "write as sorted"
 x (A) Bug: Does not detect unsaved changes when editing items
-(A) Fix parsing and printing of projects, contexts and key-val pairs
+x (A) Fix parsing and printing of projects, contexts and key-val pairs
+(D) Enable custom themes @visuals

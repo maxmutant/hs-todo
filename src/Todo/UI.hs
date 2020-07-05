@@ -161,19 +161,24 @@ listDrawElement isSelected item = limit $ itemString <+> fill ' '
         limit = hLimitPercent 100 . vLimit 1
 
         itemString = foregroundOverride
-                  $ str (" " ++ printDone item)
+                  $ spaceIndent (printDone item)
                   <+> withAttr priorityAttr (str (printPriority item))
                   <+> str (printDate item ++ printDescription item)
-                  <+> withAttr projectAttr (str (printProjects item))
-                  <+> withAttr contextAttr (str (printContexts item))
-                  <+> str (printKeyVals item)
+                  <+> withAttr projectAttr (spaceIndent (printProjects item))
+                  <+> withAttr contextAttr (spaceIndent (printContexts item))
+                  <+> spaceIndent (printKeyVals item)
 
         -- | Forcefully override the foreground color of a TodoItem.
         -- This discards the priority, project and context highlights.
+        foregroundOverride :: BT.Widget n -> BT.Widget n
         foregroundOverride
           | isDone item = forceAttr doneAttr
           | isSelected  = forceAttr selectedAttr
           | otherwise   = id
+
+        spaceIndent :: String -> BT.Widget n
+        spaceIndent "" = emptyWidget
+        spaceIndent s  = str $ ' ' : s
 
 -- --------------------------------------------------------------------------
 -- Event handling
