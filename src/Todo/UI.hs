@@ -22,8 +22,8 @@ import Todo.FixedStrings
 import Todo.IO
 import Todo.Item
 
-import Brick.Util (on)
-import Brick.Widgets.Core (fill, hLimitPercent, str, vBox, vLimit, (<+>))
+import Brick.Util (bg, fg, on)
+import Brick.Widgets.Core
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 import Data.Char
@@ -75,6 +75,17 @@ data St = St
     }
 makeLenses ''St
 
+initialState :: String -> [TodoItem] -> St
+initialState path todoItems =
+    St path
+       (BF.focusRing [List, Edit])
+       (BL.list List (Vec.fromList todoItems) 1)
+       ""
+       (BE.editor Edit (Just 1) "")
+       None
+       (toInteger $ length todoItems + 1)
+       Nothing
+
 -- --------------------------------------------------------------------------
 -- | The main entry point of the brick application. The path to the used
 -- todo.txt file and all its content as a list of parsed TodoItems must
@@ -88,7 +99,7 @@ runMain :: String -> [TodoItem] -> IO ()
 runMain path entries = void $ BM.defaultMain todoApp $ initialState path entries
 
 -- --------------------------------------------------------------------------
--- Base definitions
+-- Base app definition
 
 todoApp :: BM.App St e Name
 todoApp = BM.App { BM.appDraw         = drawUI
@@ -98,22 +109,26 @@ todoApp = BM.App { BM.appDraw         = drawUI
                  , BM.appAttrMap      = const appAttrMap
                  }
 
+-- --------------------------------------------------------------------------
+-- Attributes
+
 appAttrMap :: BA.AttrMap
 appAttrMap = BA.attrMap V.defAttr
     [ (BL.listAttr,            V.white `on` V.black)
-    , (BL.listSelectedAttr,    V.black `on` V.yellow)
+    , (BL.listSelectedAttr,    bg V.yellow)
+    , (selectedAttr,           fg V.black)
+    , (contextAttr,            fg V.green)
+    , (doneAttr,               fg V.brightBlack)
+    , (priorityAttr,           fg V.magenta)
+    , (projectAttr,            fg V.blue)
     ]
 
-initialState :: String -> [TodoItem] -> St
-initialState path todoItems =
-    St path
-       (BF.focusRing [List, Edit])
-       (BL.list List (Vec.fromList todoItems) 1)
-       ""
-       (BE.editor Edit (Just 1) "")
-       None
-       (toInteger $ length todoItems + 1)
-       Nothing
+selectedAttr, contextAttr, doneAttr, priorityAttr, projectAttr :: BA.AttrName
+selectedAttr = BA.attrName "selected"
+contextAttr  = BA.attrName "context"
+doneAttr     = BA.attrName "done"
+priorityAttr = BA.attrName "priority"
+projectAttr  = BA.attrName "project"
 
 -- --------------------------------------------------------------------------
 -- Drawing
@@ -138,9 +153,27 @@ drawUI st = [ui]
                   , footer
                   ]
 
+-- | Draw a TodoItem and highlight its individual parts.
+-- Note: This does not retain the items original internal order.
 listDrawElement :: Bool -> TodoItem -> BT.Widget Name
-listDrawElement _ l = limit $ str (printIndented l) <+> fill ' '
-    where limit = hLimitPercent 100 . vLimit 1
+listDrawElement isSelected item = limit $ itemString <+> fill ' '
+    where
+        limit = hLimitPercent 100 . vLimit 1
+
+        itemString = foregroundOverride
+                  $ str (" " ++ printDone item)
+                  <+> withAttr priorityAttr (str (printPriority item))
+                  <+> str (printDate item ++ printDescription item)
+                  <+> withAttr projectAttr (str (printProjects item))
+                  <+> withAttr contextAttr (str (printContexts item))
+                  <+> str (printKeyVals item)
+
+        -- | Forcefully override the foreground color of a TodoItem.
+        -- This discards the priority, project and context highlights.
+        foregroundOverride
+          | isDone item = forceAttr doneAttr
+          | isSelected  = forceAttr selectedAttr
+          | otherwise   = id
 
 -- --------------------------------------------------------------------------
 -- Event handling

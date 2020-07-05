@@ -16,15 +16,17 @@ module Todo.Item
 ( TodoItem
 , getId, setId
 , compareByText
-, toggleDone
+, isDone, toggleDone
 , parseTodoItem
-, printIndented
+, printDone, printPriority, printDate, printDescription
+, printProjects, printContexts, printKeyVals
 , SortFunc
 , sortFull, sortId, sortDone, sortDate, sortPrio, sortProj, sortCont
 ) where
 
 import Todo.FixedStrings
 
+import Data.List (unwords, sort)
 import Data.List.Extra (merge, trim, (\\))
 import Data.Ord (comparing)
 import Text.Regex.TDFA (getAllTextMatches, (=~))
@@ -60,15 +62,17 @@ setId item newId = item { _id = newId }
 compareByText :: TodoItem -> TodoItem -> Bool
 compareByText x y = _full x == _full y
 
+isDone :: TodoItem -> Bool
+isDone = _done
+
 -- | Toggle the done flag of a TodoItem and update the 'full'
 -- string to match the new state.
 toggleDone :: TodoItem -> TodoItem
-toggleDone i = i { _full = if isDone
+toggleDone i = i { _full = if isDone i
                                   then drop 2 $ _full i
                                   else 'x':' ': _full i
-                 , _done = not isDone
+                 , _done = not $ isDone i
                  }
-               where isDone = _done i
 
 -- --------------------------------------------------------------------------
 -- Parsing operations
@@ -137,25 +141,25 @@ regKeyVal = "(^[^ :]+:[^ :]+ | [^ :]+:[^ :]+ | [^ :]+:[^ :]+$)"
 -- --------------------------------------------------------------------------
 -- Printing
 
--- | Print a given TodoItem in an "indented" format. In this
--- format, items which aren't done or have no priority are
--- indented with spaces to align with others.
-printIndented :: TodoItem -> String
-printIndented item =
-    " " ++ x
-        ++ spacingPrio
-        ++ itemText
-        where
-            isDone  = _done item
-            hasPrio = _priority item /= ""
+-- | Functions to output individual parts of a TodoItem. The
+-- "done" checkmark and the priority are indented (if empty)
+-- to align with others.
+printDone, printPriority, printDate, printDescription :: TodoItem -> String
+printDone item     = if _done item then "x " else "  "
+printPriority item = if _priority item == "" then "    " else _priority item
+printDate          = _dates
+printDescription   = _desc
 
-            x           = if isDone then "x " else "  "
-            spacingPrio = if hasPrio then "" else "    "
-            itemText    = trimX isDone $ _full item
+-- | Functions to output the list parts of a TodoItem (projects,
+-- contexts and key-value pairs). These are alphabetically sorted
+-- and separated with a space.
+printProjects, printContexts, printKeyVals :: TodoItem -> String
+printProjects = printList . _project
+printContexts = printList . _context
+printKeyVals  = printList . _keyval
 
-            trimX :: Bool -> String -> String
-            trimX True  = drop 2
-            trimX False = id
+printList :: [String] -> String
+printList = unwords . sort
 
 -- --------------------------------------------------------------------------
 -- Sorting
