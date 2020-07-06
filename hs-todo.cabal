@@ -1,11 +1,12 @@
 name:                hs-todo
-version:             0.1.0.0
+version:             0.0.1
 license:             MIT
 license-file:        LICENSE
 author:              Maximilian Mayer
-maintainer:          max@maxmayer.xyz
+maintainer:          Maximilian Mayer <max@maxmayer.xyz>
 copyright:           2020 Maximilian Mayer
 build-type:          Simple
+extra-source-files:  README.md, res/example.txt
 cabal-version:       >=1.10
 
 executable hs-todo

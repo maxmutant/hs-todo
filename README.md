@@ -10,7 +10,7 @@ Currently only minimal functionality is given. More features will be added gradu
 * Sort entries
 
 ## Build
-Build with either nix or cabal:
+Build on Unix systems with either nix or cabal:
 
 ### nix
 ```
@@ -27,6 +27,7 @@ hs-todo /path/to/todo.txt
 ```
 
 ## Keybindings
+### List
 <table>
 
 <colgroup>
@@ -168,6 +169,88 @@ hs-todo /path/to/todo.txt
 	<td style="text-align:center;">=</td>
 	<td style="text-align:center;"></td>
 	<td style="text-align:left;">Revert sort</td>
+</tr>
+
+</tbody>
+</table>
+
+### Editor
+<table>
+
+<colgroup>
+<col style="text-align:center;"/>
+<col style="text-align:center;"/>
+<col style="text-align:left;"/>
+</colgroup>
+
+<thead>
+<tr>
+	<th style="text-align:center;">Key</th>
+	<th style="text-align:center;">Alternative</th>
+	<th style="text-align:left;">Function</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+	<td style="text-align:center;">Esc</td>
+	<td style="text-align:center;"></td>
+	<td style="text-align:left;">Cancel</td>
+</tr>
+
+<tr>
+	<td style="text-align:center;">Enter</td>
+	<td style="text-align:center;"></td>
+	<td style="text-align:left;">Confirm</td>
+</tr>
+
+<tr>
+	<td style="text-align:center;">left arrow key</td>
+	<td style="text-align:center;"></td>
+	<td style="text-align:left;">Move left</td>
+</tr>
+
+<tr>
+	<td style="text-align:center;">right arrow key</td>
+	<td style="text-align:center;"></td>
+	<td style="text-align:left;">Move right</td>
+</tr>
+
+<tr>
+	<td style="text-align:center;">Ctrl-a</td>
+	<td style="text-align:center;"></td>
+	<td style="text-align:left;">Go to beginning of line</td>
+</tr>
+
+<tr>
+	<td style="text-align:center;">Ctrl-e</td>
+	<td style="text-align:center;"></td>
+	<td style="text-align:left;">Go to end of line</td>
+</tr>
+
+<tr>
+	<td style="text-align:center;">Ctrl-d</td>
+	<td style="text-align:center;">Del</td>
+	<td style="text-align:left;">Delete character at cursor</td>
+</tr>
+
+<tr>
+	<td style="text-align:center;">Backspace</td>
+	<td style="text-align:center;"></td>
+	<td style="text-align:left;">Delete character prior cursor</td>
+</tr>
+
+<tr>
+	<td style="text-align:center;">Ctrl-u</td>
+	<td style="text-align:center;"></td>
+	<td style="text-align:left;">Delete from cursor to beginning of line</td>
+</tr>
+
+<tr>
+	<td style="text-align:center;">Ctrl-k</td>
+	<td style="text-align:center;"></td>
+	<td style="text-align:left;">Delete from cursor to end of line</td>
 </tr>
 
 </tbody>
