@@ -8,20 +8,21 @@
 -- Stability   :
 -- Portability :
 --
--- File and command line arguments operations.
+-- Command line arguments, file and date/time operations.
 --
 -----------------------------------------------------------------------------
 
 module Todo.IO
 ( parseArgs
-, readTodoFile
-, writeTodoFile
+, readTodoFile, writeTodoFile
+, getFormattedDate
 ) where
 
 import Todo.FixedStrings
 import Todo.Item
 
 import Control.Exception (bracketOnError)
+import Data.Time
 import System.Directory
 import System.IO
 import Text.Printf (printf)
@@ -68,3 +69,7 @@ writeTodoFile fileName outputItems =
         hClose tempHandle
         removeFile fileName
         renameFile tempName fileName)
+
+-- | Returns local date in 'YYYY-MM-DD' format
+getFormattedDate :: IO String
+getFormattedDate = formatTime defaultTimeLocale "%Y-%m-%d" <$> getZonedTime

@@ -25,6 +25,7 @@ executable hs-todo
                      , microlens-th
                      , regex-tdfa
                      , text-zipper
+                     , time
                      , vector
                      , vector-algorithms
                      , vty
